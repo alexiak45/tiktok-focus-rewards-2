@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TikTok Focus Rewards — Alexia Kounavis INM400</title>
+<style>
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+::-webkit-scrollbar{display:none}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+
+/* ── Animations ── */
+@keyframes spin       {to{transform:rotate(360deg)}}
+@keyframes slowPulse  {0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes pulse2     {0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+@keyframes slideUp    {from{transform:translateY(110%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes bounce     {from{transform:translateY(0)}to{transform:translateY(-8px)}}
+@keyframes fadeIn     {from{opacity:0}to{opacity:1}}
+@keyframes marquee    {0%{transform:translateX(60%)}100%{transform:translateX(-120%)}}
+@keyframes blurIn     {from{backdrop-filter:blur(0) brightness(1)}to{backdrop-filter:blur(26px) brightness(.35)}}
+
+/* ── Page layout ── */
+#root{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0a0a0f 0%,#12121f 50%,#0a0a0f 100%);
+  padding:20px;overflow-y:auto;
+}
+.proto-label{text-align:center;margin-bottom:16px}
+.proto-label h1{color:rgba(255,255,255,.9);font-size:14px;font-weight:700;letter-spacing:1px;margin-bottom:3px}
+.proto-label p {color:rgba(255,255,255,.3);font-size:11px;letter-spacing:.5px}
+
+/* ── Demo bar ── */
+.demo-bar{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(254,44,85,.12);border:1px solid rgba(254,44,85,.3);
+  border-radius:12px;padding:8px 14px;margin-bottom:14px;
+}
+.demo-bar span{color:rgba(255,255,255,.7);font-size:11px;letter-spacing:.5px}
+.demo-bar strong{color:#FE2C55;font-size:11px}
+.demo-timer-badge{
+  background:#FE2C55;color:white;font-size:11px;font-weight:700;
+  border-radius:8px;padding:3px 8px;font-family:monospace;letter-spacing:1px;
+}
+
+/* ── iPhone shell ── */
+.iphone-shell{position:relative;width:403px;flex-shrink:0}
+.iphone-btn{position:absolute;background:#2c2c2c}
+.iphone-btn-l1{left:-4px;top:108px;width:4px;height:30px;border-radius:3px 0 0 3px}
+.iphone-btn-l2{left:-4px;top:152px;width:4px;height:54px;border-radius:3px 0 0 3px}
+.iphone-btn-l3{left:-4px;top:216px;width:4px;height:54px;border-radius:3px 0 0 3px}
+.iphone-btn-r {right:-4px;top:168px;width:4px;height:78px;border-radius:0 3px 3px 0}
+.iphone-body{
+  width:403px;height:840px;
+  background:linear-gradient(145deg,#3a3a3a,#1c1c1c);
+  border-radius:56px;padding:14px;
+  box-shadow:0 0 0 1px #444,0 0 0 2px #111,
+             0 40px 80px rgba(0,0,0,.85),0 20px 40px rgba(0,0,0,.6),
+             inset 0 1px 0 rgba(255,255,255,.1),inset 0 -1px 0 rgba(0,0,0,.3);
+}
+.iphone-screen{
+  width:100%;height:100%;
+  background:#000;border-radius:44px;
+  overflow:hidden;position:relative;
+}
+
+/* ── Status bar ── */
+.status-bar{
+  position:absolute;top:0;left:0;right:0;height:50px;z-index:999;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:14px 22px 0;pointer-events:none;
+}
+.status-time{color:white;font-size:13px;font-weight:700;letter-spacing:-.3px}
+.dynamic-island{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  width:116px;height:32px;background:#000;
+  border-radius:18px;border:1px solid #1f1f1f;z-index:1000;
+}
+.status-icons{display:flex;align-items:center;gap:5px}
+.battery-wrap{width:24px;height:12px;border:1.5px solid rgba(255,255,255,.8);border-radius:3.5px;padding:1.5px 2px;display:flex;align-items:center;position:relative}
+.battery-fill{width:75%;height:100%;background:white;border-radius:2px}
+.battery-nub{position:absolute;right:-3.5px;top:50%;transform:translateY(-50%);width:2.5px;height:5px;background:rgba(255,255,255,.5);border-radius:0 1px 1px 0}
+.home-indicator{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:118px;height:4px;background:rgba(255,255,255,.28);border-radius:2px;pointer-events:none;z-index:999}
+
+/* ── App root ── */
+#app{position:absolute;inset:0;background:#000;overflow:hidden}
+
+/* ── Screens ── */
+.screen{position:absolute;inset:0;display:none;background:#0a0a0a}
+.screen.active{display:block}
+.scroll-view{position:absolute;inset:0;overflow-y:auto}
+.scroll-view::-webkit-scrollbar{display:none}
+.inner-pad{padding:52px 20px 100px}
+.screen-title{color:white;font-size:22px;font-weight:800;margin-bottom:4px}
+.screen-sub  {color:rgba(255,255,255,.4);font-size:13px;margin-bottom:22px}
+
+/* ── Feed ── */
+#screen-home{background:#000}
+#feed-wrap{position:absolute;inset:0;overflow:hidden;cursor:grab}
+#feed-wrap:active{cursor:grabbing}
+.feed-slide{
+  position:absolute;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  transition:transform .38s cubic-bezier(.25,.46,.45,.94);
+}
+.feed-bg-emoji{position:absolute;font-size:120px;opacity:.06;animation:slowPulse 4s ease-in-out infinite;user-select:none;pointer-events:none}
+.feed-mid-emoji{font-size:72px;opacity:.22;user-select:none;pointer-events:none}
+.feed-topbar{position:absolute;top:0;left:0;right:0;padding:50px 16px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.feed-tabs{display:flex;gap:24px}
+.tab-following{color:rgba(255,255,255,.65);font-size:15px;font-weight:500}
+.tab-foryou{color:white;font-size:15px;font-weight:700}
+.tab-foryou-bar{height:2px;background:white;border-radius:1px;margin-top:3px}
+.feed-right{position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.feed-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#FE2C55,#25F4EE);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid white;position:relative}
+.feed-avatar-plus{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:#FE2C55;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:bold}
+.feed-action{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.feed-action span{color:white;font-size:11px;font-weight:600}
+.feed-disc{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#111,#333);border:8px solid #222;display:flex;align-items:center;justify-content:center;animation:spin 4s linear infinite}
+.feed-bottom{position:absolute;bottom:0;left:0;right:64px;padding:16px 16px 90px;background:linear-gradient(to top,rgba(0,0,0,.7),transparent);pointer-events:none}
+.feed-user{color:white;font-weight:700;font-size:15px;margin-bottom:5px}
+.feed-desc{color:rgba(255,255,255,.9);font-size:13px;line-height:1.45;margin-bottom:10px}
+.feed-song{display:flex;align-items:center;gap:8px;overflow:hidden}
+.feed-song-text{color:rgba(255,255,255,.85);font-size:13px;animation:marquee 10s linear infinite;white-space:nowrap;display:inline-block}
+
+/* ── Session pill ── */
+.session-pill{position:absolute;top:104px;left:14px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:20px;padding:4px 12px;display:none;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.12);z-index:10}
+.session-pill.on{display:flex}
+.session-dot{width:6px;height:6px;border-radius:50%;background:#25F4EE;animation:pulse2 1.2s infinite}
+
+/* ── Checkpoint banner ── */
+#cp-banner{position:absolute;bottom:82px;left:14px;right:14px;z-index:50;background:rgba(8,8,8,.94);backdrop-filter:blur(18px);border-radius:22px;padding:18px 20px;border:1px solid rgba(254,44,85,.45);box-shadow:0 8px 32px rgba(254,44,85,.25);display:none;animation:slideUp .4s cubic-bezier(.34,1.56,.64,1)}
+#cp-banner.on{display:block}
+.cp-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cp-ico{width:38px;height:38px;border-radius:11px;background:rgba(254,44,85,.15);display:flex;align-items:center;justify-content:center;font-size:20px}
+.cp-title{color:white;font-weight:700;font-size:15px}
+.cp-sub  {color:rgba(255,255,255,.45);font-size:12px}
+.cp-desc {color:rgba(255,255,255,.65);font-size:13px;line-height:1.55;margin-bottom:14px}
+.cp-row  {display:flex;gap:10px}
+.btn-cp-go    {flex:2;background:#FE2C55;color:white;border-radius:13px;padding:12px;font-weight:700;font-size:14px}
+.btn-cp-snooze{flex:1;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:12px;font-size:13px}
+
+/* ── Blur/pause screen ── */
+#blur-screen{position:absolute;inset:0;z-index:80;background:rgba(0,0,0,.5);backdrop-filter:blur(26px) brightness(.35);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+#blur-screen.on{display:flex;animation:fadeIn .4s ease}
+.blur-inner{text-align:center;width:100%}
+.blur-big{font-size:60px;margin-bottom:14px}
+.blur-title{color:white;font-size:30px;font-weight:800;margin-bottom:8px;letter-spacing:-.5px}
+.blur-mins{color:rgba(255,255,255,.6);font-size:15px;margin-bottom:6px;line-height:1.5}
+.blur-mins b{color:#25F4EE;font-weight:700}
+.blur-hint{color:rgba(255,255,255,.4);font-size:13px;margin-bottom:32px}
+.blur-card{background:rgba(255,255,255,.06);border-radius:22px;padding:22px;margin-bottom:20px;border:1px solid rgba(255,255,255,.1)}
+.blur-card-tag{color:rgba(255,255,255,.4);font-size:11px;letter-spacing:2px;margin-bottom:12px}
+.blur-card-emoji{font-size:36px;margin-bottom:8px}
+.blur-card-title{color:white;font-weight:700;font-size:17px}
+.blur-card-sub  {color:rgba(255,255,255,.45);font-size:13px;margin-top:5px}
+.btn-blur-main{width:100%;background:#FE2C55;color:white;border-radius:18px;padding:16px;font-weight:700;font-size:16px;margin-bottom:12px;box-shadow:0 4px 24px rgba(254,44,85,.4)}
+.btn-blur-skip{width:100%;background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:14px;font-size:14px}
+
+/* ── Challenge cards ── */
+.ch-card{background:#141414;border-radius:22px;padding:18px;border:1px solid #1e1e1e;display:flex;align-items:center;gap:16px;margin-bottom:12px;cursor:pointer;transition:transform .15s,opacity .2s}
+.ch-card:active{transform:scale(.97)}
+.ch-card.done{background:rgba(37,244,238,.04);border-color:rgba(37,244,238,.18);cursor:default}
+.ch-ico{width:56px;height:56px;border-radius:17px;background:#1e1e1e;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.ch-card.done .ch-ico{background:rgba(37,244,238,.1)}
+.ch-name{color:white;font-weight:700;font-size:15px;margin-bottom:3px}
+.ch-card.done .ch-name{color:#25F4EE}
+.ch-desc{color:rgba(255,255,255,.38);font-size:12px;margin-bottom:6px}
+.ch-pts {color:#FFD700;font-size:12px;font-weight:600}
+.ch-proof{color:rgba(255,255,255,.2);font-size:11px;margin-left:8px}
+.ch-btn {background:#FE2C55;color:white;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700;flex-shrink:0}
+
+/* ── Proof modal ── */
+#proof-modal{position:absolute;inset:0;z-index:200;background:#0a0a0a;display:none;flex-direction:column;animation:fadeIn .2s ease}
+#proof-modal.on{display:flex}
+.proof-head{padding:52px 20px 16px;border-bottom:1px solid #181818;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.proof-close{background:none;color:white;font-size:22px;padding:0;flex-shrink:0}
+.proof-head-icon{font-size:24px}
+.proof-head-info{flex:1}
+.proof-head-info h3{color:white;font-weight:700;font-size:16px}
+.proof-head-info p {color:rgba(255,255,255,.35);font-size:12px}
+.proof-pts{color:#FFD700;font-weight:700;font-size:18px}
+.proof-body{flex:1;overflow-y:auto;padding:24px 20px 40px}
+.proof-step{display:none}
+.proof-step.on{display:block}
+.step-lbl{color:rgba(255,255,255,.4);font-size:11px;letter-spacing:2px;margin-bottom:14px}
+.info-card{background:#141414;border-radius:22px;padding:22px;margin-bottom:20px;border:1px solid #1e1e1e}
+.info-card .big{font-size:44px;margin-bottom:12px}
+.info-card h3{color:white;font-weight:700;font-size:19px;margin-bottom:8px}
+.info-card p {color:rgba(255,255,255,.45);font-size:14px;line-height:1.6}
+.proof-hint{background:rgba(37,244,238,.07);border-radius:18px;padding:16px 18px;border:1px solid rgba(37,244,238,.2);margin-bottom:28px;display:flex;align-items:flex-start;gap:12px}
+.proof-hint-ico{font-size:22px;flex-shrink:0}
+.proof-hint h4{color:#25F4EE;font-weight:700;font-size:14px;margin-bottom:4px}
+.proof-hint p {color:rgba(255,255,255,.55);font-size:13px;line-height:1.5}
+.cam-box{width:100%;aspect-ratio:3/4;border-radius:22px;background:#111;border:2px dashed #2a2a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:20px;color:rgba(255,255,255,.25);font-size:13px;gap:10px;text-align:center;padding:20px}
+.proof-img{width:100%;border-radius:22px;display:block;margin-bottom:20px}
+.verify-wrap{text-align:center;padding-top:60px}
+.verify-spin{font-size:58px;display:inline-block;animation:spin 1s linear infinite;margin-bottom:20px}
+.verify-wrap h3{color:white;font-weight:700;font-size:22px;margin-bottom:8px}
+.verify-wrap p {color:rgba(255,255,255,.4);font-size:14px;margin-bottom:32px}
+.dots{display:flex;justify-content:center;gap:8px}
+.dots span{width:9px;height:9px;border-radius:50%;background:#FE2C55;animation:bounce .7s ease-in-out infinite alternate}
+.dots span:nth-child(2){animation-delay:.18s}
+.dots span:nth-child(3){animation-delay:.36s}
+.result-wrap{text-align:center}
+.result-emoji{font-size:66px;margin-bottom:16px}
+.result-title{font-weight:800;font-size:26px;margin-bottom:14px}
+.result-card{background:#141414;border-radius:22px;padding:22px;margin-bottom:16px}
+.result-lbl{color:rgba(255,255,255,.4);font-size:11px;letter-spacing:2px;margin-bottom:10px}
+.result-msg{color:rgba(255,255,255,.75);font-size:14px;line-height:1.65;margin-bottom:18px}
+.result-pts-row{display:flex;align-items:center;justify-content:center;gap:10px}
+.result-star{color:#FFD700;font-size:40px}
+.result-num {color:#FFD700;font-weight:800;font-size:56px}
+.result-conf{background:rgba(37,244,238,.07);border-radius:14px;padding:10px 16px;border:1px solid rgba(37,244,238,.2);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.result-conf span:first-child{color:rgba(255,255,255,.45);font-size:13px}
+.result-conf span:last-child {color:#25F4EE;font-weight:700;font-size:15px}
+
+/* ── Rewards ── */
+.balance-card{background:linear-gradient(135deg,#1a0a0a,#2a0a10);border-radius:26px;padding:26px;margin-bottom:22px;border:1px solid rgba(254,44,85,.2);text-align:center}
+.balance-lbl{color:rgba(255,255,255,.38);font-size:11px;letter-spacing:2px;margin-bottom:10px}
+.balance-row{display:flex;align-items:center;justify-content:center;gap:10px}
+.balance-star{font-size:42px;color:#FFD700}
+.balance-num{color:#FFD700;font-weight:800;font-size:68px;line-height:1}
+.balance-sub{color:rgba(255,255,255,.28);font-size:12px;margin-top:8px}
+.section-lbl{color:rgba(255,255,255,.38);font-size:11px;letter-spacing:2px;margin-bottom:14px}
+.reward-card{background:#141414;border-radius:22px;padding:18px;border:1px solid #1e1e1e;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;transition:border-color .3s}
+.reward-left{display:flex;align-items:center;gap:14px}
+.reward-ico{width:54px;height:54px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.reward-name{color:white;font-weight:700;font-size:15px}
+.reward-cost{color:rgba(255,255,255,.4);font-size:13px}
+.reward-btn{border-radius:13px;padding:10px 16px;font-weight:700;font-size:13px;transition:all .2s}
+.earn-card{background:#141414;border-radius:22px;padding:18px;border:1px solid #1e1e1e;margin-top:4px}
+.earn-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #181818}
+.earn-row:last-child{border-bottom:none}
+.earn-left{display:flex;gap:10px;align-items:center;color:rgba(255,255,255,.55);font-size:13px}
+.earn-val{color:#FFD700;font-size:13px;font-weight:600}
+
+/* ── Profile ── */
+.profile-avatar-wrap{text-align:center;margin-bottom:28px}
+.profile-avatar{width:82px;height:82px;border-radius:50%;background:linear-gradient(135deg,#FE2C55,#25F4EE);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 12px}
+.profile-name{color:white;font-weight:800;font-size:19px}
+.profile-role{color:rgba(255,255,255,.38);font-size:13px}
+.profile-stats{display:flex;justify-content:center;gap:30px;margin-top:18px}
+.profile-stat-val{color:white;font-weight:800;font-size:22px}
+.profile-stat-lbl{color:rgba(255,255,255,.38);font-size:12px}
+.toggle-row{background:#141414;border-radius:22px;padding:18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #1e1e1e;transition:all .3s}
+.toggle-row.on{background:rgba(37,244,238,.05);border-color:rgba(37,244,238,.2)}
+.toggle-row h4{color:white;font-weight:700;font-size:15px}
+.toggle-row p {font-size:12px;margin-top:3px;color:rgba(255,255,255,.3);transition:color .3s}
+.toggle-row.on p{color:#25F4EE}
+.toggle-sw{width:52px;height:28px;border-radius:14px;background:#2a2a2a;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.toggle-sw.on{background:#25F4EE}
+.toggle-knob{width:22px;height:22px;border-radius:50%;background:#555;position:absolute;top:3px;left:3px;transition:left .3s,background .3s}
+.toggle-sw.on .toggle-knob{left:27px;background:#0a0a0a}
+.cp-select-card{background:#141414;border-radius:22px;padding:18px;margin-bottom:14px;border:1px solid #1e1e1e}
+.cp-select-card h4{color:white;font-weight:700;font-size:15px;margin-bottom:4px}
+.cp-select-card p {color:rgba(255,255,255,.38);font-size:12px;margin-bottom:14px}
+.cp-choices{display:flex;gap:10px}
+.cp-choice{flex:1;background:#1e1e1e;color:white;border-radius:12px;padding:13px 0;font-size:15px;transition:background .2s}
+.cp-choice.on{background:#FE2C55;font-weight:700}
+.promise-card{background:rgba(37,244,238,.04);border-radius:22px;padding:18px;border:1px solid rgba(37,244,238,.1)}
+.promise-lbl{color:#25F4EE;font-size:11px;letter-spacing:2px;margin-bottom:12px}
+.promise-item{color:rgba(255,255,255,.48);font-size:13px;padding:5px 0}
+
+/* ── Bottom nav ── */
+#bottom-nav{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.92);backdrop-filter:blur(10px);border-top:1px solid #181818;display:flex;justify-content:space-around;align-items:center;padding:10px 0 26px;z-index:60}
+.nav-btn{background:none;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.5;transition:opacity .2s;min-width:48px;padding:0}
+.nav-btn.on{opacity:1}
+.nav-btn span{color:white;font-size:10px;font-weight:400}
+.nav-btn.on span{font-weight:700}
+.nav-plus{position:relative;width:46px;height:32px;display:flex;align-items:center;justify-content:center}
+.nav-plus-c{position:absolute;inset:0;background:#25F4EE;border-radius:8px;right:4px}
+.nav-plus-r{position:absolute;inset:0;background:#FE2C55;border-radius:8px;left:4px}
+.nav-plus-w{position:relative;background:white;border-radius:6px;width:38px;height:26px;display:flex;align-items:center;justify-content:center}
+.nav-inbox-wrap{position:relative}
+.nav-badge{position:absolute;top:-4px;right:-6px;background:#FE2C55;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700}
+
+/* ── Shared buttons ── */
+.btn-red  {width:100%;background:#FE2C55;color:white;border-radius:18px;padding:16px;font-weight:700;font-size:16px;display:block;margin-bottom:12px;box-shadow:0 4px 20px rgba(254,44,85,.3)}
+.btn-dark {width:100%;background:#141414;color:rgba(255,255,255,.55);border:1px solid #1e1e1e;border-radius:18px;padding:14px;font-size:14px;display:block;margin-bottom:12px}
+.btn-ghost{width:100%;background:transparent;color:rgba(255,255,255,.35);padding:12px;font-size:14px;display:block}
+</style>
+</head>
+<body>
+<div id="root">
+
+  <div class="proto-label">
+    <h1>TikTok Focus Rewards Mode</h1>
+    <p>Interactive Prototype · Alexia Kounavis · INM400</p>
+  </div>
+
+  <!-- Demo mode bar -->
+  <div class="demo-bar">
+    <span>🎓 <strong>DEMO MODE</strong> — Checkpoint in <span id="demoCountdown">30s</span>, blur at <span id="demoBlurTime">60s</span></span>
+    <span class="demo-timer-badge" id="demoBadge">00:00</span>
+  </div>
+
+  <!-- iPhone -->
+  <div class="iphone-shell">
+    <div class="iphone-btn iphone-btn-l1"></div>
+    <div class="iphone-btn iphone-btn-l2"></div>
+    <div class="iphone-btn iphone-btn-l3"></div>
+    <div class="iphone-btn iphone-btn-r"></div>
+    <div class="iphone-body">
+      <div class="iphone-screen">
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <span class="status-time" id="statusTime">9:41</span>
+          <div class="dynamic-island"></div>
+          <div class="status-icons">
+            <svg width="15" height="11" viewBox="0 0 15 11" fill="white"><rect x="0" y="3" width="2.5" height="8" rx=".8"/><rect x="4" y="2" width="2.5" height="9" rx=".8"/><rect x="8" y="0" width="2.5" height="11" rx=".8"/><rect x="12" y="1" width="2.5" height="10" rx=".8" opacity=".3"/></svg>
+            <svg width="15" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M1 6s4.5-4 11-4 11 4 11 4M5 10s3-2.5 7-2.5S19 10 19 10M9 14s1.5-1 3-1 3 1 3 1"/><circle cx="12" cy="18" r="1" fill="white"/></svg>
+            <div class="battery-wrap"><div class="battery-fill"></div><div class="battery-nub"></div></div>
+          </div>
+        </div>
+
+        <!-- APP -->
+        <div id="app">
+
+          <!-- HOME/FEED -->
+          <div id="screen-home" class="screen active" style="background:#000">
+            <div id="feed-wrap"></div>
+
+            <div class="session-pill" id="sessionPill">
+              <div class="session-dot"></div>
+              <span id="sessionTimeDisplay">00:00</span>
+            </div>
+
+            <!-- Checkpoint banner -->
+            <div id="cp-banner">
+              <div class="cp-head">
+                <div class="cp-ico">⏱</div>
+                <div>
+                  <div class="cp-title" id="cpTitleText">30-Second Demo Check-in</div>
+                  <div class="cp-sub">You've been scrolling a while!</div>
+                </div>
+              </div>
+              <div class="cp-desc">Take a quick real-world break &amp; earn points ⭐</div>
+              <div class="cp-row">
+                <button class="btn-cp-go" onclick="goChallenge()">⚡ Take a Challenge</button>
+                <button class="btn-cp-snooze" onclick="snooze()">Snooze</button>
+              </div>
+            </div>
+
+            <!-- Blur screen -->
+            <div id="blur-screen">
+              <div class="blur-inner">
+                <div class="blur-big">⏸</div>
+                <div class="blur-title">Scroll Paused</div>
+                <div class="blur-mins">You've been scrolling for <b id="blurMinsText">60</b> seconds (demo).</div>
+                <div class="blur-hint">Complete a challenge to unlock your feed 🔓</div>
+                <div class="blur-card">
+                  <div class="blur-card-tag">NEW CHALLENGE AVAILABLE</div>
+                  <div class="blur-card-emoji">🌟</div>
+                  <div class="blur-card-title">Ready for a break?</div>
+                  <div class="blur-card-sub">Check challenges to earn rewards!</div>
+                </div>
+                <button class="btn-blur-main" onclick="goChallenge()">⚡ Start a Challenge</button>
+                <button class="btn-blur-skip" onclick="skipBlur()">Continue Anyway (−10 pts)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHALLENGES -->
+          <div id="screen-challenges" class="screen">
+            <div class="scroll-view">
+              <div class="inner-pad">
+                <div class="screen-title">Challenges</div>
+                <div class="screen-sub">Complete a challenge, submit proof, earn points 🏆</div>
+                <div id="challenge-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REWARDS -->
+          <div id="screen-rewards" class="screen">
+            <div class="scroll-view">
+              <div class="inner-pad">
+                <div class="screen-title">Rewards</div>
+                <div class="screen-sub">Transfer your points to real rewards</div>
+                <div class="balance-card">
+                  <div class="balance-lbl">YOUR BALANCE</div>
+                  <div class="balance-row">
+                    <span class="balance-star">★</span>
+                    <span class="balance-num" id="balanceNum">50</span>
+                  </div>
+                  <div class="balance-sub">points from real breaks</div>
+                </div>
+                <div class="section-lbl">REDEEM</div>
+                <div id="rewards-list"></div>
+                <div class="earn-card">
+                  <div class="section-lbl">HOW TO EARN MORE</div>
+                  <div class="earn-row"><div class="earn-left"><span>⚡</span><span>Complete challenges</span></div><span class="earn-val">+10–25 pts</span></div>
+                  <div class="earn-row"><div class="earn-left"><span>📸</span><span>Submit photo proof</span></div><span class="earn-val">+bonus pts</span></div>
+                  <div class="earn-row"><div class="earn-left"><span>🔥</span><span>Daily streak</span></div><span class="earn-val">+5 pts/day</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROFILE -->
+          <div id="screen-profile" class="screen">
+            <div class="scroll-view">
+              <div class="inner-pad">
+                <div class="profile-avatar-wrap">
+                  <div class="profile-avatar">🧑</div>
+                  <div class="profile-name">@you</div>
+                  <div class="profile-role">Focus Rewards Member</div>
+                  <div class="profile-stats">
+                    <div><div class="profile-stat-val" id="profilePts">50</div><div class="profile-stat-lbl">Points</div></div>
+                    <div><div class="profile-stat-val">3d</div><div class="profile-stat-lbl">Streak</div></div>
+                    <div><div class="profile-stat-val" id="profileDone">0</div><div class="profile-stat-lbl">Done</div></div>
+                  </div>
+                </div>
+
+                <div class="toggle-row" id="modeCard">
+                  <div>
+                    <h4>Focus Rewards Mode</h4>
+                    <p id="modeLbl">Tap to activate</p>
+                  </div>
+                  <div class="toggle-sw" id="modeSw" onclick="toggleMode()">
+                    <div class="toggle-knob"></div>
+                  </div>
+                </div>
+
+                <div class="cp-select-card">
+                  <h4>Checkpoint Reminder</h4>
+                  <p>When to show the nudge (demo uses 30s / 60s)</p>
+                  <div class="cp-choices">
+                    <button class="cp-choice on" data-v="45" onclick="setCp(this)">45m</button>
+                    <button class="cp-choice"    data-v="60" onclick="setCp(this)">60m</button>
+                    <button class="cp-choice"    data-v="90" onclick="setCp(this)">90m</button>
+                  </div>
+                </div>
+
+                <div class="promise-card">
+                  <div class="promise-lbl">OUR PROMISE</div>
+                  <div class="promise-item">✓ 100% opt-in — always your choice</div>
+                  <div class="promise-item">✓ Gentle nudges, never shame or guilt</div>
+                  <div class="promise-item">✓ Snooze anytime</div>
+                  <div class="promise-item">✓ Real rewards for real offline habits</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PROOF MODAL -->
+          <div id="proof-modal">
+            <div class="proof-head">
+              <button class="proof-close" onclick="closeProof()">✕</button>
+              <span class="proof-head-icon" id="pIcon">🚶</span>
+              <div class="proof-head-info">
+                <h3 id="pTitle">5-Min Walk</h3>
+                <p>Proof required to earn points</p>
+              </div>
+              <span class="proof-pts" id="pPts">+15 ★</span>
+            </div>
+            <div class="proof-body">
+
+              <!-- info -->
+              <div class="proof-step on" id="ps-info">
+                <div class="step-lbl">WHAT TO DO</div>
+                <div class="info-card">
+                  <div class="big" id="pInfoIcon">🚶</div>
+                  <h3 id="pInfoTitle">Walk</h3>
+                  <p id="pInfoDesc">Step outside</p>
+                </div>
+                <div class="proof-hint">
+                  <span class="proof-hint-ico">📸</span>
+                  <div>
+                    <h4>Photo proof required</h4>
+                    <p id="pHintLbl">Photo outside 🌿</p>
+                  </div>
+                </div>
+                <button class="btn-red" onclick="showStep('capture')">I'm Ready — Let's Go 🚀</button>
+              </div>
+
+              <!-- capture -->
+              <div class="proof-step" id="ps-capture">
+                <div class="step-lbl">UPLOAD PROOF</div>
+                <div class="cam-box">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.8"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  <span>Upload your proof photo</span>
+                  <span id="camHint" style="font-size:11px;opacity:.6;padding:0 10px;text-align:center"></span>
+                </div>
+                <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)"/>
+                <button class="btn-red" onclick="document.getElementById('photoInput').click()">📷 Take / Upload Photo</button>
+                <button class="btn-ghost" onclick="closeProof()">Cancel</button>
+              </div>
+
+              <!-- review -->
+              <div class="proof-step" id="ps-review">
+                <div class="step-lbl">YOUR PROOF PHOTO</div>
+                <img id="proofImg" class="proof-img" src="" alt="proof"/>
+                <button class="btn-red" onclick="runVerify()">✓ Verify &amp; Claim Points</button>
+                <button class="btn-dark" onclick="showStep('capture')">Retake Photo</button>
+              </div>
+
+              <!-- verifying -->
+              <div class="proof-step" id="ps-verifying">
+                <div class="verify-wrap">
+                  <div class="verify-spin">🔍</div>
+                  <h3>Verifying proof...</h3>
+                  <p>AI is reviewing your photo</p>
+                  <div class="dots"><span></span><span></span><span></span></div>
+                </div>
+              </div>
+
+              <!-- result -->
+              <div class="proof-step" id="ps-result">
+                <div class="result-wrap">
+                  <div class="result-emoji">✅</div>
+                  <div class="result-title" id="resultTitle" style="color:#25F4EE">Proof Verified!</div>
+                  <div class="result-card">
+                    <div class="result-lbl">AI REVIEW</div>
+                    <div class="result-msg" id="resultMsg">Great work!</div>
+                    <div class="result-pts-row">
+                      <span class="result-star">★</span>
+                      <span class="result-num" id="resultNum">+15</span>
+                    </div>
+                  </div>
+                  <div class="result-conf"><span>Confidence score</span><span>94%</span></div>
+                  <button class="btn-red" onclick="claimReward()">🎉 Claim Reward &amp; Go Back</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- BOTTOM NAV -->
+          <div id="bottom-nav">
+            <button class="nav-btn on" data-s="home" onclick="switchTab('home')">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1.8"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+              <span>Home</span>
+            </button>
+            <button class="nav-btn" data-s="challenges" onclick="switchTab('challenges')">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+              <span>Challenges</span>
+            </button>
+            <button class="nav-btn" style="opacity:1">
+              <div class="nav-plus">
+                <div class="nav-plus-c"></div><div class="nav-plus-r"></div>
+                <div class="nav-plus-w"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.8"><path d="M12 5v14M5 12h14"/></svg></div>
+              </div>
+            </button>
+            <button class="nav-btn" data-s="rewards" onclick="switchTab('rewards')">
+              <div class="nav-inbox-wrap">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <div class="nav-badge">★</div>
+              </div>
+              <span>Rewards</span>
+            </button>
+            <button class="nav-btn" data-s="profile" onclick="switchTab('profile')">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              <span>Profile</span>
+            </button>
+          </div>
+
+        </div><!-- /app -->
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:16px;color:rgba(255,255,255,.18);font-size:10px;letter-spacing:2px;text-transform:uppercase">Scroll · Swipe · Tap to interact</p>
+</div>
+
+<script>
+// ═══════════════════════════
+//  DATA
+// ═══════════════════════════
+const VIDEOS = [
+  {user:"@alexwanders",  desc:"POV: you said 5 mins ago you'd stop scrolling 😭 #relatable",      likes:"284K",comments:"12.4K",shares:"8.2K", saves:"41K", song:"Espresso - Sabrina Carpenter", color:["#1a0533","#3d0f6b"],emoji:"🎵"},
+  {user:"@studymotivation",desc:"Study with me 📚 pomodoro day 14 #studytok #focus",               likes:"92K", comments:"3.1K", shares:"5.4K", saves:"67K", song:"lo-fi beats to relax/study",   color:["#0a1628","#1a3a5c"],emoji:"📚"},
+  {user:"@fitnessdaily", desc:"5 min stretch RIGHT NOW 🧘 #fitness #wellness",                     likes:"431K",comments:"18K",  shares:"22K",  saves:"89K", song:"Good Feeling - Flo Rida",      color:["#1a2a0a","#2d4a10"],emoji:"🧘"},
+  {user:"@cookingwithkai",desc:"15 min meal prep for the whole week 🥗 #mealprep",                 likes:"167K",comments:"7.2K", shares:"14K",  saves:"203K",song:"Cooking - Original Sound",     color:["#2a1000","#5c2200"],emoji:"🥗"},
+  {user:"@nightowl.exe", desc:"it's 3am and i'm still on tiktok send help 😭💀 #insomnia",         likes:"1.2M",comments:"45K",  shares:"67K",  saves:"12K", song:"Night Changes - One Direction",color:["#000a1a","#001233"],emoji:"🌙"},
+];
+const CHALLENGES = [
+  {id:1,icon:"🚶",title:"5-Min Walk",      desc:"Step outside for a quick walk",              pts:15,proofLbl:"Photo outside — sky, street, or nature 🌿"},
+  {id:2,icon:"📚",title:"10-Min Study",    desc:"Focus on something you've been putting off", pts:25,proofLbl:"Snap your notes, textbook, or screen 📖"},
+  {id:3,icon:"💧",title:"Hydration Check", desc:"Drink a full glass of water",                pts:10,proofLbl:"Photo of your empty glass 🥛"},
+  {id:4,icon:"🧘",title:"5-Min Stretch",   desc:"Stand up and stretch your whole body",       pts:15,proofLbl:"Selfie mid-stretch 💪"},
+  {id:5,icon:"👀",title:"Eye Break",       desc:"Look 20ft away for 20 seconds",              pts:5, proofLbl:"Tap confirm when done"},
+  {id:6,icon:"💪",title:"2-Min Workout",   desc:"20 jumping jacks or pushups — go!",          pts:20,proofLbl:"Post-workout selfie 😅"},
+];
+const REWARDS = [
+  {id:1,name:"Starbucks",  icon:"☕",cost:200,color:"#00704A"},
+  {id:2,name:"Tim Hortons",icon:"🍩",cost:150,color:"#C8102E"},
+  {id:3,name:"Gift Card",  icon:"🎁",cost:300,color:"#7C3AED"},
+];
+
+// ═══════════════════════════
+//  STATE
+// ═══════════════════════════
+const S = {
+  points:50, modeOn:false, sessionSec:0,
+  feedIdx:0, liked:{}, completed:[], redeemed:[],
+  cpFired:{}, activeChallenge:null, photoUrl:null,
+  // DEMO timings (seconds): checkpoint at 30s, blur at 60s
+  DEMO_CP:30, DEMO_BLUR:60,
+};
+let sessionTimer=null;
+
+// ═══════════════════════════
+//  FEED
+// ═══════════════════════════
+function buildFeed(){
+  const wrap=document.getElementById('feed-wrap');
+  wrap.innerHTML='';
+  VIDEOS.forEach((v,i)=>{
+    const el=document.createElement('div');
+    el.className='feed-slide';
+    el.id='slide'+i;
+    el.style.cssText=`transform:translateY(${(i-S.feedIdx)*100}%);background:linear-gradient(160deg,${v.color[0]},${v.color[1]})`;
+    el.innerHTML=`
+      <div class="feed-bg-emoji">${v.emoji}</div>
+      <div class="feed-mid-emoji">${v.emoji}</div>
+      <div class="feed-topbar">
+        <div class="feed-tabs">
+          <span class="tab-following">Following</span>
+          <div><span class="tab-foryou">For You</span><div class="tab-foryou-bar"></div></div>
+        </div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      </div>
+      <div class="feed-right">
+        <div class="feed-avatar">${v.emoji}<div class="feed-avatar-plus">+</div></div>
+        <div class="feed-action" onclick="toggleLike(${i})">
+          <svg id="heart${i}" width="30" height="30" viewBox="0 0 24 24"
+            fill="${S.liked[i]?'#FE2C55':'none'}" stroke="${S.liked[i]?'#FE2C55':'white'}" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
+          <span id="lk${i}">${v.likes}</span>
+        </div>
+        <div class="feed-action">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          <span>${v.comments}</span>
+        </div>
+        <div class="feed-action">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          <span>${v.saves}</span>
+        </div>
+        <div class="feed-action">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+          <span>${v.shares}</span>
+        </div>
+        <div class="feed-disc">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+      </div>
+      <div class="feed-bottom">
+        <div class="feed-user">${v.user}</div>
+        <div class="feed-desc">${v.desc}</div>
+        <div class="feed-song">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="feed-song-text">${v.song}</span>
+        </div>
+      </div>`;
+    wrap.appendChild(el);
+  });
+  setupDrag();
+}
+
+function moveFeed(dir){
+  const next=S.feedIdx+dir;
+  if(next<0||next>=VIDEOS.length)return;
+  S.feedIdx=next;
+  VIDEOS.forEach((_,i)=>{
+    const el=document.getElementById('slide'+i);
+    if(el)el.style.transform=`translateY(${(i-S.feedIdx)*100}%)`;
+  });
+}
+
+function toggleLike(i){
+  S.liked[i]=!S.liked[i];
+  const h=document.getElementById('heart'+i);
+  if(!h)return;
+  h.setAttribute('fill',S.liked[i]?'#FE2C55':'none');
+  h.setAttribute('stroke',S.liked[i]?'#FE2C55':'white');
+}
+
+function setupDrag(){
+  const wrap=document.getElementById('feed-wrap');
+  let start=null, lock=false;
+  wrap.addEventListener('mousedown', e=>{start=e.clientY;});
+  wrap.addEventListener('mouseup',   e=>{
+    if(start===null)return;
+    const d=start-e.clientY; if(Math.abs(d)>40)moveFeed(d>0?1:-1);
+    start=null;
+  });
+  wrap.addEventListener('mouseleave',e=>{
+    if(start!==null){const d=start-e.clientY;if(Math.abs(d)>40)moveFeed(d>0?1:-1);start=null;}
+  });
+  wrap.addEventListener('touchstart',e=>{start=e.touches[0].clientY;},{passive:true});
+  wrap.addEventListener('touchend',  e=>{
+    const d=start-e.changedTouches[0].clientY;if(Math.abs(d)>40)moveFeed(d>0?1:-1);start=null;
+  });
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();if(lock)return;lock=true;
+    moveFeed(e.deltaY>0?1:-1);
+    setTimeout(()=>lock=false,700);
+  },{passive:false});
+}
+
+// ═══════════════════════════
+//  SESSION + DEMO TIMER
+// ═══════════════════════════
+function fmtSec(n){return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')}
+
+function startSession(){
+  sessionTimer=setInterval(()=>{
+    S.sessionSec++;
+    // Update pill
+    document.getElementById('sessionTimeDisplay').textContent=fmtSec(S.sessionSec);
+    // Update demo badge
+    document.getElementById('demoBadge').textContent=fmtSec(S.sessionSec);
+
+    // Checkpoint at DEMO_CP seconds
+    if(S.sessionSec===S.DEMO_CP&&!S.cpFired.cp){
+      S.cpFired.cp=true;
+      document.getElementById('cpTitleText').textContent=`${S.DEMO_CP}-Second Demo Check-in`;
+      document.getElementById('cp-banner').classList.add('on');
+    }
+    // Blur at DEMO_BLUR seconds
+    if(S.sessionSec===S.DEMO_BLUR&&!S.cpFired.blur){
+      S.cpFired.blur=true;
+      document.getElementById('cp-banner').classList.remove('on');
+      document.getElementById('blurMinsText').textContent=S.DEMO_BLUR;
+      document.getElementById('blur-screen').classList.add('on');
+    }
+    // Update countdown in demo bar
+    const toCP=Math.max(0,S.DEMO_CP-S.sessionSec);
+    const toBlur=Math.max(0,S.DEMO_BLUR-S.sessionSec);
+    document.getElementById('demoCountdown').textContent=toCP>0?`${toCP}s`:'done';
+    document.getElementById('demoBlurTime').textContent=toBlur>0?`${toBlur}s`:'done';
+  },1000);
+}
+
+function stopSession(){
+  clearInterval(sessionTimer);sessionTimer=null;
+  S.sessionSec=0;S.cpFired={};
+  document.getElementById('sessionTimeDisplay').textContent='00:00';
+  document.getElementById('demoBadge').textContent='00:00';
+  document.getElementById('sessionPill').classList.remove('on');
+  document.getElementById('cp-banner').classList.remove('on');
+  document.getElementById('blur-screen').classList.remove('on');
+  document.getElementById('demoCountdown').textContent='30s';
+  document.getElementById('demoBlurTime').textContent='60s';
+}
+
+// ═══════════════════════════
+//  MODE TOGGLE
+// ═══════════════════════════
+function toggleMode(){
+  S.modeOn=!S.modeOn;
+  const sw=document.getElementById('modeSw');
+  const card=document.getElementById('modeCard');
+  const lbl=document.getElementById('modeLbl');
+  const pill=document.getElementById('sessionPill');
+  if(S.modeOn){
+    sw.classList.add('on');card.classList.add('on');
+    lbl.textContent='✓ Active — session tracking on';
+    pill.classList.add('on');
+    startSession();
+  } else {
+    sw.classList.remove('on');card.classList.remove('on');
+    lbl.textContent='Tap to activate';
+    pill.classList.remove('on');
+    stopSession();
+  }
+}
+
+function snooze(){document.getElementById('cp-banner').classList.remove('on');}
+function skipBlur(){
+  document.getElementById('blur-screen').classList.remove('on');
+  S.points=Math.max(0,S.points-10);refreshPts();
+}
+function goChallenge(){
+  document.getElementById('cp-banner').classList.remove('on');
+  document.getElementById('blur-screen').classList.remove('on');
+  switchTab('challenges');
+}
+
+// ═══════════════════════════
+//  CHECKPOINT SELECTOR
+// ═══════════════════════════
+function setCp(btn){
+  document.querySelectorAll('.cp-choice').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ═══════════════════════════
+//  CHALLENGES
+// ═══════════════════════════
+function buildChallenges(){
+  const list=document.getElementById('challenge-list');
+  list.innerHTML='';
+  CHALLENGES.forEach(ch=>{
+    const done=S.completed.includes(ch.id);
+    const d=document.createElement('div');
+    d.className='ch-card'+(done?' done':'');
+    if(!done)d.onclick=()=>openProof(ch.id);
+    d.innerHTML=`
+      <div class="ch-ico">${done?'✓':ch.icon}</div>
+      <div style="flex:1">
+        <div class="ch-name">${ch.title}</div>
+        <div class="ch-desc">${ch.desc}</div>
+        <div><span class="ch-pts">★ ${ch.pts} pts</span><span class="ch-proof">• 📸 photo proof</span></div>
+      </div>
+      ${done?'':'<button class="ch-btn">Go →</button>'}`;
+    list.appendChild(d);
+  });
+}
+
+// ═══════════════════════════
+//  PROOF MODAL
+// ═══════════════════════════
+function openProof(id){
+  const ch=CHALLENGES.find(c=>c.id===id);
+  S.activeChallenge=ch; S.photoUrl=null;
+  document.getElementById('pIcon').textContent=ch.icon;
+  document.getElementById('pTitle').textContent=ch.title;
+  document.getElementById('pPts').textContent=`+${ch.pts} ★`;
+  document.getElementById('pInfoIcon').textContent=ch.icon;
+  document.getElementById('pInfoTitle').textContent=ch.title;
+  document.getElementById('pInfoDesc').textContent=ch.desc;
+  document.getElementById('pHintLbl').textContent=ch.proofLbl;
+  document.getElementById('camHint').textContent=ch.proofLbl;
+  document.getElementById('photoInput').value='';
+  showStep('info');
+  document.getElementById('proof-modal').classList.add('on');
+}
+function closeProof(){
+  document.getElementById('proof-modal').classList.remove('on');
+  S.activeChallenge=null;
+}
+function showStep(s){
+  document.querySelectorAll('.proof-step').forEach(el=>el.classList.remove('on'));
+  document.getElementById('ps-'+s).classList.add('on');
+}
+function handlePhoto(e){
+  const f=e.target.files[0]; if(!f)return;
+  S.photoUrl=URL.createObjectURL(f);
+  document.getElementById('proofImg').src=S.photoUrl;
+  showStep('review');
+}
+function runVerify(){
+  showStep('verifying');
+  setTimeout(()=>{
+    const ch=S.activeChallenge;
+    document.getElementById('resultTitle').textContent='Proof Verified!';
+    document.getElementById('resultTitle').style.color='#25F4EE';
+    document.getElementById('resultMsg').textContent=`Great work! Your ${ch.title} proof looks legit. Keep it up! 🎉`;
+    document.getElementById('resultNum').textContent=`+${ch.pts}`;
+    showStep('result');
+  },2400);
+}
+function claimReward(){
+  const ch=S.activeChallenge;
+  if(ch&&!S.completed.includes(ch.id)){
+    S.points+=ch.pts;
+    S.completed.push(ch.id);
+  }
+  closeProof();
+  refreshPts();
+  buildChallenges();
+  buildRewards();
+  document.getElementById('profileDone').textContent=S.completed.length;
+}
+
+// ═══════════════════════════
+//  REWARDS
+// ═══════════════════════════
+function buildRewards(){
+  const list=document.getElementById('rewards-list');
+  list.innerHTML='';
+  REWARDS.forEach(r=>{
+    const can=S.points>=r.cost, done=S.redeemed.includes(r.id);
+    const d=document.createElement('div');
+    d.className='reward-card';
+    if(done)d.style.borderColor=r.color+'55';
+    d.innerHTML=`
+      <div class="reward-left">
+        <div class="reward-ico" style="background:${r.color}22;border:1px solid ${r.color}44">${r.icon}</div>
+        <div><div class="reward-name">${r.name}</div><div class="reward-cost">★ ${r.cost} pts</div></div>
+      </div>
+      <button class="reward-btn"
+        style="background:${done?'#1a2a1a':can?r.color:'#1e1e1e'};color:${done?'#4CAF50':can?'white':'#444'};cursor:${can&&!done?'pointer':'default'}"
+        ${can&&!done?`onclick="redeemR(${r.id})"`:''}>
+        ${done?'✓ Done':'Transfer'}
+      </button>`;
+    list.appendChild(d);
+  });
+}
+function redeemR(id){S.redeemed.push(id);buildRewards();}
+
+function refreshPts(){
+  document.getElementById('balanceNum').textContent=S.points;
+  document.getElementById('profilePts').textContent=S.points;
+}
+
+// ═══════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════
+function switchTab(t){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+t).classList.add('active');
+  document.querySelectorAll('.nav-btn[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===t));
+  if(t==='challenges')buildChallenges();
+  if(t==='rewards')   buildRewards();
+}
+
+// ═══════════════════════════
+//  CLOCK
+// ═══════════════════════════
+function tick(){
+  const d=new Date(),h=d.getHours()%12||12,m=String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('statusTime').textContent=`${h}:${m}`;
+}
+tick(); setInterval(tick,30000);
+
+// ═══════════════════════════
+//  INIT
+// ═══════════════════════════
+buildFeed();
+buildChallenges();
+buildRewards();
+refreshPts();
+</script>
+</body>
+</html>
